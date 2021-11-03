@@ -8,7 +8,7 @@ using StravaGPXReaderLib.Models;
 
 namespace StravaGPXReaderLib
 {
-    public class GPXReader
+    public class StravaGPXReader
     {
         private readonly XDocument gpx;
         private readonly XmlNamespaceManager xmlNamespaceManager;
@@ -54,10 +54,15 @@ namespace StravaGPXReaderLib
             None
         }
 
-        public GPXReader(XDocument gpx, XmlNamespaceManager xmlNamespaceManager)
+        public StravaGPXReader(XDocument gpx)
         {
             this.gpx = gpx;
-            this.xmlNamespaceManager = xmlNamespaceManager;
+
+            XmlNamespaceManager manager = new XmlNamespaceManager(new NameTable());
+            manager.AddNamespace("p", "http://www.topografix.com/GPX/1/1");
+            manager.AddNamespace("gpxtpx", "http://www.garmin.com/xmlschemas/TrackPointExtension/v1");
+
+            this.xmlNamespaceManager = manager;
         }
 
         /// <summary>
@@ -282,22 +287,51 @@ namespace StravaGPXReaderLib
             //      Make no assumption that lat/long/time/elevation exist automatically
             List<XAttribute> latitudesXAtt = gpx.XPathSelectElements("//p:gpx//p:trk//p:trkseg//p:trkpt", xmlNamespaceManager).Attributes("lat").ToList();
             List<XAttribute> longitudesXAtt = gpx.XPathSelectElements("//p:gpx//p:trk//p:trkseg//p:trkpt", xmlNamespaceManager).Attributes("lon").ToList();
-            List<XElement> timestampsXEle = gpx.XPathSelectElements("//p:gpx//p:trk//p:trkseg//p:trkpt//p:time", xmlNamespaceManager).ToList();
-            List<XElement> elevationsXEle = gpx.XPathSelectElements("//p:gpx//p:trk//p:trkseg//p:trkpt//p:ele", xmlNamespaceManager).ToList();
 
             List<GPXCoordinates> gPXCoordinates = new List<GPXCoordinates>();
             for (int i = 0; i < latitudesXAtt.Count; i++) //assume that three lists have same XAttributes count
             {
                 double latitude = double.Parse(latitudesXAtt[i].Value);
                 double longitude = double.Parse(longitudesXAtt[i].Value);
-                DateTime timestamp = DateTime.Parse(timestampsXEle[i].Value);
-                double elevation = double.Parse(elevationsXEle[i].Value);
 
-                gPXCoordinates.Add(new GPXCoordinates(latitude, longitude, timestamp, elevation));
+                gPXCoordinates.Add(new GPXCoordinates(latitude, longitude));
             }
 
             return gPXCoordinates;
         }
+
+        /// <summary>
+        /// Return a list of trackpoints that includes lat/lon/elevation/timestanp/heartrate
+        /// </summary>
+        /// <returns></returns>
+        public List<GPXTrackPoint> GetGPXTrackPoints()
+        {
+            //TODO: Refine process to get base trackpoint element and get details from there.
+            //      Make no assumption that lat/long/time/elevation exist automatically
+            List<XAttribute> latitudesXAtt = gpx.XPathSelectElements("//p:gpx//p:trk//p:trkseg//p:trkpt", xmlNamespaceManager).Attributes("lat").ToList();
+            List<XAttribute> longitudesXAtt = gpx.XPathSelectElements("//p:gpx//p:trk//p:trkseg//p:trkpt", xmlNamespaceManager).Attributes("lon").ToList();
+            List<XElement> timestampsXEle = gpx.XPathSelectElements("//p:gpx//p:trk//p:trkseg//p:trkpt//p:time", xmlNamespaceManager).ToList();
+            List<XElement> elevationsXEle = gpx.XPathSelectElements("//p:gpx//p:trk//p:trkseg//p:trkpt//p:ele", xmlNamespaceManager).ToList();
+            List<XElement> heartratesXEle = gpx.XPathSelectElements("//p:gpx//p:trk//p:trkseg//p:trkpt//p:extensions//gpxtpx:TrackPointExtension//gpxtpx:hr", xmlNamespaceManager).ToList();
+
+            List<GPXTrackPoint> gpxTrackPoints = new List<GPXTrackPoint>();
+            for (int i = 0; i < latitudesXAtt.Count; i++) //assume that three lists have same XAttributes count
+            {
+                double latitude = double.Parse(latitudesXAtt[i].Value);
+                double longitude = double.Parse(longitudesXAtt[i].Value);
+                DateTime timestamp = DateTime.Parse(timestampsXEle[i].Value);
+                double elevation = double.Parse(elevationsXEle[i].Value);
+                int heartrate = int.Parse(heartratesXEle[i].Value);
+
+
+                GPXCoordinates coordinates = new GPXCoordinates(latitude, longitude);
+
+                gpxTrackPoints.Add(new GPXTrackPoint(coordinates, timestamp, elevation, heartrate));
+            }
+
+            return gpxTrackPoints;
+        }
+
 
         /// <summary>
         /// Return a list of elevation to obtain a detailed altimetry
