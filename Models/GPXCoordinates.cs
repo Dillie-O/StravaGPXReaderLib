@@ -6,18 +6,13 @@ namespace StravaGPXReaderLib.Models
     /// </summary>
     public class GPXCoordinates
     {
-        public GPXCoordinates(double latitude, double longitude, DateTime? timestamp = null, double? elevation = null)
+        public GPXCoordinates(double latitude, double longitude)
         {
             Latitude = latitude;
             Longitude = longitude;
-            Timestamp = timestamp;
-            Elevation = elevation;
         }
 
         public double Latitude { get; set; }
         public double Longitude { get; set; }
-        public DateTime? Timestamp { get; set; }
-        // Elevation is assumed to be in meters
-        public Double? Elevation { get; set; }
     }
 }
